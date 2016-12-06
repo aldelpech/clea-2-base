@@ -36,6 +36,10 @@ function c2b_theme_setup() {
 		'flex-width'  => true,
 	) );
 	
+	// add featured images to rss feed
+	add_filter('the_excerpt_rss', 'c2b_featuredtoRSS');
+	add_filter('the_content_feed', 'c2b_featuredtoRSS');
+	
 }
  
  
@@ -57,77 +61,86 @@ function c2b_allowedtags() {
     return '<br>,<em>,<i>,<ul>,<ol>,<li>,<p>'; 
 }
 
-if ( ! function_exists( 'c2b_custom_wp_trim_excerpt' ) ) : 
 
-    function c2b_custom_wp_trim_excerpt($c2b_excerpt) {
-		$raw_excerpt = $c2b_excerpt;
-		
-		// text for the "read more" link
-		$rm_text = __( 'La suite &raquo;', 'stargazer' ) ;
-		$excerpt_end = ' <a class="more-link" href="'. esc_url( get_permalink() ) . '">' . $rm_text . '</a>'; 
-		
-		
-        if ( '' == $c2b_excerpt ) {  
+function c2b_custom_wp_trim_excerpt($c2b_excerpt) {
+	$raw_excerpt = $c2b_excerpt;
+	
+	// text for the "read more" link
+	$rm_text = __( 'La suite &raquo;', 'stargazer' ) ;
+	$excerpt_end = ' <a class="more-link" href="'. esc_url( get_permalink() ) . '">' . $rm_text . '</a>'; 
+	
+	
+	if ( '' == $c2b_excerpt ) {  
 
-            $c2b_excerpt = get_the_content('');
-            $c2b_excerpt = strip_shortcodes( $c2b_excerpt );
-            $c2b_excerpt = apply_filters('the_content', $c2b_excerpt);
-            $c2b_excerpt = str_replace(']]>', ']]&gt;', $c2b_excerpt);
-            $c2b_excerpt = strip_tags($c2b_excerpt, c2b_allowedtags()); /*IF you need to allow just certain tags. Delete if all tags are allowed */
+		$c2b_excerpt = get_the_content('');
+		$c2b_excerpt = strip_shortcodes( $c2b_excerpt );
+		$c2b_excerpt = apply_filters('the_content', $c2b_excerpt);
+		$c2b_excerpt = str_replace(']]>', ']]&gt;', $c2b_excerpt);
+		$c2b_excerpt = strip_tags($c2b_excerpt, c2b_allowedtags()); /*IF you need to allow just certain tags. Delete if all tags are allowed */
 
-            //Set the excerpt word count and only break after sentence is complete.
-                $excerpt_word_count = 75;
-                $excerpt_length = apply_filters('excerpt_length', $excerpt_word_count); 
-                $tokens = array();
-                $excerptOutput = '';
-                $count = 0;
+		//Set the excerpt word count and only break after sentence is complete.
+			$excerpt_word_count = 75;
+			$excerpt_length = apply_filters('excerpt_length', $excerpt_word_count); 
+			$tokens = array();
+			$excerptOutput = '';
+			$count = 0;
 
-                // Divide the string into tokens; HTML tags, or words, followed by any whitespace
-                preg_match_all('/(<[^>]+>|[^<>\s]+)\s*/u', $c2b_excerpt, $tokens);
+			// Divide the string into tokens; HTML tags, or words, followed by any whitespace
+			preg_match_all('/(<[^>]+>|[^<>\s]+)\s*/u', $c2b_excerpt, $tokens);
 
-                foreach ($tokens[0] as $token) { 
+			foreach ($tokens[0] as $token) { 
 
-                    if ($count >= $excerpt_length && preg_match('/[\,\;\?\.\!]\s*$/uS', $token)) { 
-                    // Limit reached, continue until , ; ? . or ! occur at the end
-                        $excerptOutput .= trim($token);
-                        break;
-                    }
-
-                    // Add words to complete sentence
-                    $count++;
-
-                    // Append what's left of the token
-                    $excerptOutput .= $token;
-                }
-
-            $c2b_excerpt = trim(force_balance_tags($excerptOutput));
-		   
-				// $c2b_excerpt .= $excerpt_end ;
-				$excerpt_more = apply_filters( 'excerpt_more', ' ' . $excerpt_end ); 
-
-                $pos = strrpos($c2b_excerpt, '</');
-                if ($pos !== false) {
-					// Inside last HTML tag
-					$c2b_excerpt = substr_replace($c2b_excerpt, $excerpt_end, $pos, 0); // Add read more next to last word 
-				} else {
-					// After the content
-					$c2b_excerpt .= $excerpt_more; //Add read more in new paragraph 
+				if ($count >= $excerpt_length && preg_match('/[\,\;\?\.\!]\s*$/uS', $token)) { 
+				// Limit reached, continue until , ; ? . or ! occur at the end
+					$excerptOutput .= trim($token);
+					break;
 				}
-                
-            return $c2b_excerpt;   
 
-        } /* else {
-			return 'AAA ! ' . $raw_excerpt;
-		} */
-		
-		// add read more link to the manual extract
-		$c2b_excerpt .= $excerpt_end ;
-		// return the manual extract
-        // return apply_filters('c2b_custom_wp_trim_excerpt', 'AAA ! ' . $c2b_excerpt, $raw_excerpt);
-		return apply_filters('c2b_custom_wp_trim_excerpt', $c2b_excerpt, $raw_excerpt);
-    }
+				// Add words to complete sentence
+				$count++;
+
+				// Append what's left of the token
+				$excerptOutput .= $token;
+			}
+
+		$c2b_excerpt = trim(force_balance_tags($excerptOutput));
+	   
+			// $c2b_excerpt .= $excerpt_end ;
+			$excerpt_more = apply_filters( 'excerpt_more', ' ' . $excerpt_end ); 
+
+			$pos = strrpos($c2b_excerpt, '</');
+			if ($pos !== false) {
+				// Inside last HTML tag
+				$c2b_excerpt = substr_replace($c2b_excerpt, $excerpt_end, $pos, 0); // Add read more next to last word 
+			} else {
+				// After the content
+				$c2b_excerpt .= $excerpt_more; //Add read more in new paragraph 
+			}
+			
+		return $c2b_excerpt;   
+
+	} /* else {
+		return 'AAA ! ' . $raw_excerpt;
+	} */
+	
+	// add read more link to the manual extract
+	$c2b_excerpt .= $excerpt_end ;
+	// return the manual extract
+	// return apply_filters('c2b_custom_wp_trim_excerpt', 'AAA ! ' . $c2b_excerpt, $raw_excerpt);
+	return apply_filters('c2b_custom_wp_trim_excerpt', $c2b_excerpt, $raw_excerpt);
+}
   
-endif; 
+	
+function c2b_featuredtoRSS( $content ) {
+	// https://woorkup.com/show-featured-image-wordpress-rss-feed/
+	
+	global $post;
+	if ( has_post_thumbnail( $post->ID ) ){
+		$content = '<div>' . get_the_post_thumbnail( $post->ID, 'thumbnail', array( 'style' => 'margin-bottom: 15px; margin-right: 15px; float: left;' ) ) . '</div>' . $content;
+	}
+	
+	return $content;
+}
 
 
 
